@@ -77,7 +77,7 @@ warningText.Font = Enum.Font.Gotham
 warningText.TextScaled = true
 warningText.TextColor3 = Color3.fromRGB(255, 100, 100)
 
-local cooldown = 30
+local cooldown = 5
 local lastTime = 0
 local espEnabled = false
 local autoEnabled = false
