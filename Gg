@@ -10,7 +10,6 @@ local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "EggDetectorUI"
 gui.ResetOnSpawn = false
 
--- GUI Frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 250, 0, 180)
 frame.Position = UDim2.new(0.5, -125, 0.5, -90)
@@ -78,7 +77,6 @@ warningText.Font = Enum.Font.Gotham
 warningText.TextScaled = true
 warningText.TextColor3 = Color3.fromRGB(255, 100, 100)
 
--- Data and logic
 local cooldown = 30
 local lastTime = 0
 local espEnabled = false
@@ -116,15 +114,17 @@ end
 
 local function createBillboard(part, eggName, petName)
     if part:FindFirstChild("PetBillboard") then return end
+
     local bb = Instance.new("BillboardGui", part)
     bb.Name = "PetBillboard"
-    bb.Size = UDim2.new(0, 200, 0, 40)
+    bb.Size = UDim2.new(0, 200, 0, 60)
     bb.StudsOffset = Vector3.new(0, 3, 0)
     bb.AlwaysOnTop = true
     bb.Parent = part
 
     local label = Instance.new("TextLabel", bb)
-    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Size = UDim2.new(1, 0, 0.6, 0)
+    label.Position = UDim2.new(0, 0, 0, 0)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.fromRGB(255, 255, 200)
     label.TextStrokeTransparency = 0.5
@@ -132,6 +132,16 @@ local function createBillboard(part, eggName, petName)
     label.TextScaled = true
     label.Font = Enum.Font.GothamBold
     label.Text = eggName .. " | " .. petName
+
+    local warning = Instance.new("TextLabel", bb)
+    warning.Size = UDim2.new(1, 0, 0.4, 0)
+    warning.Position = UDim2.new(0, 0, 0.6, 0)
+    warning.BackgroundTransparency = 1
+    warning.TextColor3 = Color3.fromRGB(255, 100, 100)
+    warning.TextStrokeTransparency = 1
+    warning.TextScaled = true
+    warning.Font = Enum.Font.Gotham
+    warning.Text = "If Pet is Inaccurate, Please Re-Script"
 end
 
 local function clearLabels()
