@@ -1,0 +1,194 @@
+-- LocalScript inside StarterGui
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "EggDetectorUI"
+gui.ResetOnSpawn = false
+
+-- GUI Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 180)
+frame.Position = UDim2.new(0.5, -125, 0.5, -90)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+Instance.new("UICorner", frame)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -30, 0, 25)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🐣 Egg Detector"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local espButton = Instance.new("TextButton", frame)
+espButton.Size = UDim2.new(1, -20, 0, 30)
+espButton.Position = UDim2.new(0, 10, 0, 35)
+espButton.Text = "🔍 ESP: OFF"
+espButton.Font = Enum.Font.Gotham
+espButton.TextScaled = true
+espButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+espButton.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", espButton)
+
+local autoButton = Instance.new("TextButton", frame)
+autoButton.Size = UDim2.new(1, -20, 0, 30)
+autoButton.Position = UDim2.new(0, 10, 0, 70)
+autoButton.Text = "🔄 Auto Randomize: OFF"
+autoButton.Font = Enum.Font.Gotham
+autoButton.TextScaled = true
+autoButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+autoButton.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", autoButton)
+
+local onceButton = Instance.new("TextButton", frame)
+onceButton.Size = UDim2.new(1, -20, 0, 30)
+onceButton.Position = UDim2.new(0, 10, 0, 105)
+onceButton.Text = "🎲 Randomize Once"
+onceButton.Font = Enum.Font.Gotham
+onceButton.TextScaled = true
+onceButton.BackgroundColor3 = Color3.fromRGB(70, 30, 30)
+onceButton.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", onceButton)
+
+local cooldownText = Instance.new("TextLabel", frame)
+cooldownText.Size = UDim2.new(1, -20, 0, 20)
+cooldownText.Position = UDim2.new(0, 10, 0, 140)
+cooldownText.BackgroundTransparency = 1
+cooldownText.Text = "Randomize in: OFF"
+cooldownText.Font = Enum.Font.Gotham
+cooldownText.TextScaled = true
+cooldownText.TextColor3 = Color3.fromRGB(200, 200, 200)
+
+local warningText = Instance.new("TextLabel", frame)
+warningText.Size = UDim2.new(1, -20, 0, 14)
+warningText.Position = UDim2.new(0, 10, 0, 160)
+warningText.BackgroundTransparency = 1
+warningText.Text = ""
+warningText.Font = Enum.Font.Gotham
+warningText.TextScaled = true
+warningText.TextColor3 = Color3.fromRGB(255, 100, 100)
+
+-- Data and logic
+local cooldown = 30
+local lastTime = 0
+local espEnabled = false
+local autoEnabled = false
+local predictedPets = {}
+
+local eggPetMap = {
+    ["Common Egg"] = {["Bunny"] = 33.3, ["Dog"] = 33.3, ["Golden Lab"] = 33.3},
+    ["Uncommon Egg"] = {["Black Bunny"] = 25, ["Cat"] = 25, ["Chicken"] = 25, ["Deer"] = 25},
+    ["Rare Egg"] = {["Orange Tabby"] = 33.3, ["Spotted Deer"] = 25, ["Pig"] = 16.67, ["Rooster"] = 16.67, ["Monkey"] = 8.33},
+    ["Legendary Egg"] = {["Cow"] = 42.55, ["Silver Monkey"] = 42.55, ["Sea Otter"] = 10.64, ["Turtle"] = 2.13, ["Polar Bear"] = 2.13},
+    ["Mythical Egg"] = {["Grey Mouse"] = 35.71, ["Brown Mouse"] = 26.79, ["Squirrel"] = 26.79, ["Red Giant Ant"] = 8.93, ["Red Fox"] = 1.79},
+    ["Bug Egg"] = {["Snail"] = 40, ["Giant Ant"] = 30, ["Caterpillar"] = 25, ["Praying Mantis"] = 4, ["Dragonfly"] = 1},
+    ["Common Summer Egg"] = {["Starfish"] = 50, ["Seagull"] = 25, ["Crab"] = 25},
+    ["Rare Summer Egg"] = {["Flamingo"] = 30, ["Toucan"] = 25, ["Sea Turtle"] = 20, ["Orangutan"] = 15, ["Seal"] = 10},
+    ["Paradise Egg"] = {["Ostrich"] = 40, ["Peacock"] = 30, ["Capybara"] = 21, ["Scarlet Macaw"] = 8, ["Mimic Octopus"] = 1},
+    ["Oasis Egg"] = {["Meerkat"] = 45, ["Sand Snake"] = 34.5, ["Axolotl"] = 15, ["Hyacinth Macaw"] = 5, ["Fennec Fox"] = 0.5},
+    ["Bee Egg"] = {["Bee"] = 65, ["Honey Bee"] = 25, ["Bear Bee"] = 5, ["Petal Bee"] = 4, ["Queen Bee"] = 1},
+    ["Anti-Bee Egg"] = {["Wasp"] = 55, ["Tarantula Hawk"] = 30, ["Moth"] = 13.75, ["Butterfly"] = 1, ["Disco Bee"] = 0.25},
+    ["Night Egg"] = {["Hedgehog"] = 49, ["Mole"] = 22, ["Frog"] = 14, ["Echo Frog"] = 10, ["Night Owl"] = 4, ["Raccoon"] = 1},
+    ["Dinosaur Egg"] = {["Raptor"] = 35, ["Triceratops"] = 32.5, ["Stegosaurus"] = 29, ["Pterodactyl"] = 3, ["Brontosaurus"] = 1, ["T-Rex"] = 0.5}
+}
+
+local function getWeightedRandomPet(petTable)
+    local total = 0
+    for _, weight in pairs(petTable) do total += weight end
+    local rand = math.random() * total
+    local cumulative = 0
+    for pet, weight in pairs(petTable) do
+        cumulative += weight
+        if rand <= cumulative then return pet end
+    end
+    return "Unknown"
+end
+
+local function createBillboard(part, eggName, petName)
+    if part:FindFirstChild("PetBillboard") then return end
+    local bb = Instance.new("BillboardGui", part)
+    bb.Name = "PetBillboard"
+    bb.Size = UDim2.new(0, 200, 0, 40)
+    bb.StudsOffset = Vector3.new(0, 3, 0)
+    bb.AlwaysOnTop = true
+    bb.Parent = part
+
+    local label = Instance.new("TextLabel", bb)
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 200)
+    label.TextStrokeTransparency = 0.5
+    label.TextStrokeColor3 = Color3.new(0, 0, 0)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Text = eggName .. " | " .. petName
+end
+
+local function clearLabels()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:FindFirstChild("PetBillboard") then
+            obj.PetBillboard:Destroy()
+        end
+    end
+end
+
+local function showESP()
+    if not espEnabled then return end
+    clearLabels()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        local eggName = obj.Name
+        if eggPetMap[eggName] and (obj:IsA("Model") or obj:IsA("BasePart")) then
+            local base = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
+            if base and (base.Position - hrp.Position).Magnitude <= 30 then
+                local pet = predictedPets[base]
+                if not pet then
+                    pet = getWeightedRandomPet(eggPetMap[eggName])
+                    predictedPets[base] = pet
+                end
+                createBillboard(base, eggName, pet)
+            end
+        end
+    end
+end
+
+local function randomize()
+    if tick() - lastTime >= cooldown then
+        lastTime = tick()
+        warningText.Text = ""
+        predictedPets = {}
+        showESP()
+    else
+        warningText.Text = "Randomizer is on cooldown"
+    end
+end
+
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espButton.Text = "🔍 ESP: " .. (espEnabled and "ON" or "OFF")
+    if espEnabled then showESP() else clearLabels() end
+end)
+
+autoButton.MouseButton1Click:Connect(function()
+    autoEnabled = not autoEnabled
+    autoButton.Text = "🔄 Auto Randomize: " .. (autoEnabled and "ON" or "OFF")
+end)
+
+onceButton.MouseButton1Click:Connect(randomize)
+
+RunService.RenderStepped:Connect(function()
+    local timeLeft = math.max(0, cooldown - math.floor(tick() - lastTime))
+    cooldownText.Text = "Randomize in: " .. (timeLeft > 0 and tostring(timeLeft) .. "s" or "OFF")
+    if autoEnabled and tick() - lastTime >= cooldown then
+        randomize()
+    end
+end)
